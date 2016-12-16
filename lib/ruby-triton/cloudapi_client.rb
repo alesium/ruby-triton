@@ -108,11 +108,65 @@ module RubyTriton
     end
 
     ##
+    # Account
+    ##
+
+    def get_account(opts= {})
+      url = cloudapi_url("/#{@user}")
+      headers = gen_headers(opts)
+      method = :get
+      query_parameters = nil
+      attempt(opts[:attempts]) do
+        result = @client.send(method, url, query_parameters, headers)
+        raise unless result.is_a? HTTP::Message
+
+        if result.status == 200
+          return JSON.parse(result.body)
+        end
+
+        raise_error(result)
+      end
+    end
+    def get_account(opts= {})
+      url = cloudapi_url("/#{@user}")
+      headers = gen_headers(opts)
+      method = :get
+      query_parameters = nil
+      attempt(opts[:attempts]) do
+        result = @client.send(method, url, query_parameters, headers)
+        raise unless result.is_a? HTTP::Message
+
+        if result.status == 200
+          return JSON.parse(result.body)
+        end
+
+        raise_error(result)
+      end
+    end
+
+    def update_account(opts= {})
+      url = cloudapi_url("/#{@user}")
+      headers = gen_headers(opts)
+      method = :post
+      query_parameters = nil
+      attempt(opts[:attempts]) do
+        result = @client.send(method, url, query_parameters, headers)
+        raise unless result.is_a? HTTP::Message
+
+        if result.status == 200
+          return JSON.parse(result.body)
+        end
+
+        raise_error(result)
+      end
+    end
+
+
+    ##
     # Instances
     ##
 
     def list_machines(opts= {})
-      # @subuser     = opts[:subuser] ? opts[:subuser] : nil
       url = cloudapi_url("/my/machines")
       headers = gen_headers(opts)
       query_parameters = {}
@@ -121,19 +175,19 @@ module RubyTriton
       raise ArgumentError unless 0 < limit && limit <= MAX_LIMIT
       query_parameters[:limit] = limit
 
-      valid_parameters = {  'brand' => 'String',
-                            'name' => 'String',
-                            'image' => 'String',
-                            'state' => 'String',
-                            'memory' => 'Integer',
-                            'tombstone' => 'Boolean',
-                            'offset' => 'Integer',
-                            'tag.' => 'String',
-                            'docker' => 'Boolean',
-                            'credentials' => 'Boolean'
-                          }
-
-      validate_parameters(query_parameters, valid_parameters, opts)
+      # valid_parameters = {  'brand' => 'String',
+      #                       'name' => 'String',
+      #                       'image' => 'String',
+      #                       'state' => 'String',
+      #                       'memory' => 'Integer',
+      #                       'tombstone' => 'Boolean',
+      #                       'offset' => 'Integer',
+      #                       'tag.' => 'String',
+      #                       'docker' => 'Boolean',
+      #                       'credentials' => 'Boolean'
+      #                     }
+      #
+      # validate_parameters(query_parameters, valid_parameters, opts)
 
       attempt(opts[:attempts]) do
         method = opts[:head] ? :head : :get
@@ -257,8 +311,8 @@ module RubyTriton
       raise unless query_parameters.is_a? Hash
       raise unless valid_parameters.is_a? Hash
       raise unless opts.is_a? Hash
-      opts.each do | key |
-        puts opts[:key]
+      opts.each do | key, val |
+        puts "key = #{key};"
       end
     end
 
@@ -269,9 +323,9 @@ module RubyTriton
       raise unless result.is_a? HTTP::Message
 
       err   = JSON.parse(result.body)
-      klass = MantaClient.const_get err['code']
+      klass = CloudApiClient.const_get err['code']
       raise klass, err['message']
-      rescue NameError, TypeError, JSON::ParserError
+    rescue NameError, TypeError, JSON::ParserError
       raise UnknownError, result.status.to_s + ': ' + result.body
     end
 
