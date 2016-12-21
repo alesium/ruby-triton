@@ -899,6 +899,17 @@ module RubyTriton
     ##
     # Instances
     ##
+    # Triton supports three different types of instances:
+    #
+    #  Docker containers. OS-virtualized instances managed through the Docker client.
+    #  Infrastructure containers. More traditional OS-virtualized instances
+    #   running SmartOS or more Linux distributions.
+    #  Hardware-virtualized machines. Hardware-virtualized instances (KVM) for
+    #   running legacy or special-purpose operating systems.
+    #
+    # Infrastructure and Docker containers are lightweight, offering the most
+    # performance, observability and operational flexibility. Harware-virtualized
+    # machines are useful for non-SmartOS or non-Linux stacks.
 
     # Lists all instances we have on record for your account. If you have a large
     # number of instances, you can filter using the input parameters listed below.
@@ -946,6 +957,25 @@ module RubyTriton
       end
     end
 
+
+    # Gets the details for an individual instance.
+    #
+    # Deleted instances are returned only if the instance history has not been
+    # purged from Triton.
+    #
+    # ==== Attributes
+    #
+    # * +:instance - String id of the instance
+    def get_instance(instance, opts = {})
+      raise ArgumentError unless instance.is_a? String
+      c = @client["#{@account}/instances/#{instance}"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
     # Allows you to provision an instance.
     # If you do not specify a name, CloudAPI will generate a random one for you.
     # If you have enabled Triton CNS on your account, this name will also be
@@ -968,10 +998,278 @@ module RubyTriton
     # any way; those keys are statically written at provisioning-time only, and
     # you will need to manually manage them on the instance itself.
     #
+    # ==== Attributes
     #
+    # * +:image - String id of the image
+    # * +:package - String id of the packge
+    #
+    # ==== Options
+    #
+    # * +:name - String	Friendly name for this instance; default is the first 8 characters of the machine id
+    # * +:networks - Array	Desired networks ids, obtained from list_networks
+    # * +:locality - Object[String => Array]	Optionally specify which instances the new instance should be near or far from
+    # * +:metadata.$name - String	An arbitrary set of metadata key/value pairs can be set at provision time, but they must be prefixed with "metadata."
+    # * +:tag.$name - String	An arbitrary set of tags can be set at provision time, but they must be prefixed with "tag."
+    # * +:firewall_enabled - Boolean	Completely enable or disable firewall for this instance. Default is false
+
     def create_machine(image, package, opts= {})
+      raise ArgumentError unless image.is_a? String
+      raise ArgumentError unless package.is_a? String
+      c = @client["#{@account}/machines"]
+      headers = gen_headers(opts)
+      opts[:image] = machine
+      opts[:package] = name
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
 
     end
+
+    # Allows you to shut down an instance. POST to the instance name with an
+    # action of stop.
+    #
+    # You can poll on get_machine until the state is stopped.
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def stop_machine(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}?action=stop"]
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Allows you to boot up an instance. POST to the instance name with an
+    # action of start.
+    #
+    # You can poll on get_machine until the state is running.
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def start_machine(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}?action=start"]
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Allows you to reboot an instance. POST to the instance name with an
+    # action of reboot.
+    #
+    # You can poll on get_machine until the state is running.
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def reboot_machine(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}?action=reboot"]
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+
+    # Resize an instance to a new package (a.k.a. instance type).
+    #
+    # Resizing is only supported for containers (instances which are not
+    # hardware virtual machines -- they have brand=kvm). Hardware virtual machines
+    # cannot be resized.
+    #
+    # Resizing is not guaranteed to work, especially when resizing upwards in
+    # resources. It is best-effort, and may fail. Resizing downwards will usually
+    # succeed.
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:package - String	A package id, as returned from list_packages
+    def resize_machine(machine, package, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless package.is_a? String
+      c = @client["#{@account}/machines/#{machine}?action=resize"]
+      opts['package'] = package
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Allows you to rename an instance. POST to the instance id with an action
+    # of rename. You must additionally include a new name for the instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:name - String	The new "friendly" name for this instance
+    def rename_machine(machine, name, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless name.is_a? String
+      c = @client["#{@account}/machines/#{machine}?action=rename"]
+      opts['name'] = name
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Allows you to enable the firewall for an instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def enable_machine_firewall(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}?action=enable_firewall"]
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Allows you to completely disable the firewall of an instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def disable_machine_firewall(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}?action=disable_firewall"]
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Allows you to take a snapshot of an instance. Once you have one or more
+    # snapshots, you can boot the instance from a previous snapshot.
+    #
+    # Snapshots are not usable with other instances; they are a point-in-time
+    # snapshot of the current instance. Snapshots can also only be taken of
+    # instances that are not of brand 'kvm'.
+    #
+    # Since instance instances use a copy-on-write filesystem, snapshots take up
+    # increasing amounts of space as the filesystem changes over time. There is
+    # a limit to how much space snapshots are allowed to take. Plan your
+    # snapshots accordingly.
+    #
+    # You can poll on get_machine_snapshot until the state is created.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    #
+    # ==== Options
+    #
+    # * +:name - String The name to assign to the new snapshot
+    def create_machine_snapshot(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}/snapshots"]
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # If an instance is in the 'stopped' state, you can choose to start the
+    # instance from the referenced snapshot. This is effectively a means to
+    # roll back instance state.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:snapshot - String The name of the snapshot
+    #
+    # ==== Options
+    #
+    # * +:name - String The name to assign to the new snapshot
+    def start_machine_from_snapshot(machine, snapshot, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless snapshot.is_a? String
+      c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Lists all snapshots taken for a given instance. There are no filtration
+    # parameters for this API.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def list_machine_snapshots(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}/snapshots"]
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+    # Gets the state of the named snapshot.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:snapshot - String The name of the snapshot
+    def get_machine_snapshots(machine, snapshot, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless snapshot.is_a? String
+      c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+    # Deletes the specified snapshot of an instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:snapshot - String The name of the snapshot
+    def delete_machine_snapshot(machine, snapshot, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless snapshot.is_a? String
+      c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      attempt(opts[:attempts]) do
+        do_delete(c, headers)
+      end
+
+    end
+
+    # Allows you to update the metadata for a given instance. Note that updating
+    # the metadata via CloudAPI will result in the metadata being updated in the
+    # running instance.
+    #
+    # The semantics of this call are subtly different that the add_machine_tags
+    # call -- any metadata keys passed in here are created if they do not exist,
+    # and overwritten if they do.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:keys - String or Json object of keys to update
+    #
+    # ==== Options
+    #
+    # * +:name - String The name to assign to the new snapshot
+    def update_machine_metadata(machine, keys, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless keys.is_a? String || keys.is_a? JSON
+      c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      opts['keys'] = keys
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
 
     # ---------------------------------------------------------------------------
     protected
