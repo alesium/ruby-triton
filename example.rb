@@ -8,7 +8,7 @@ priv_key   = ENV['SDC_KEY' ]
 priv_key_data = File.read(priv_key)
 
 client = RubyTriton::CloudApiClient.new(host, account, priv_key_data,
-                                    :disable_ssl_verification => true,
+                                    :verify_ssl => false,
 #                                    :subuser => 'monte',
                                     )
 

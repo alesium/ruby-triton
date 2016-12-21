@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.license     = 'MIT'
 
   s.add_dependency             'net-ssh',    '>= 2.6.0'
-  s.add_dependency             'httpclient', '>= 2.6.0.1'
+  s.add_dependency             'rest-client','>= 2.0.0'
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'minitest',   '~> 5.5.1'

@@ -9,6 +9,12 @@ What's ruby-triton?
 ruby-triton is a client for communicating with cloudapi from Triton container
 services to interact with the datacenter.
 
+Acknolegement
+=============
+
+Joyent for creating Triton cloudapi
+@dekobon for creating ruby-manta which was used as the base for this.
+
 
 License
 =======
