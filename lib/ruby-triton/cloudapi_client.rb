@@ -481,7 +481,7 @@ module RubyTriton
     #
     # * +:policy - String id of the policy
     def get_policy(policy, opts = {})
-      raise unless policy.is_a? String
+      raise ArgumentError unless policy.is_a? String
       c = @client["#{@account}/policies/#{policy}"]
       headers = gen_headers(opts)
       attempt(opts[:attempts]) do
@@ -505,6 +505,7 @@ module RubyTriton
       raise ArgumentError unless rules.is_a? Array
       c = @client["#{@account}/policies"]
       headers = gen_headers(opts)
+      opts[:rules] = rules
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -594,6 +595,7 @@ module RubyTriton
       raise ArgumentError unless key.is_a? String
       c = @client["#{@account}/users/#{@subuser}/keys"]
       headers = gen_headers(opts)
+      opts[:key] = key
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -617,6 +619,282 @@ module RubyTriton
     end
 
 
+    ##
+    # Config
+    ##
+    # These endpoints allow you to get and set configuration values related to
+    # your account.
+
+    # Outputs configuration for your account. The configuration values that are
+    # currently configurable are:
+    # default_network: the network that docker containers are provisioned on.
+    def get_config(opts = {})
+      c = @client["#{@account}/config"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+    # Updates configuration values for your account.
+    #
+    # ==== Attributes
+    #
+    # * +:default_network - String ID of the network used for provisioning docker containers
+    def update_config(default_network, opts = {})
+      raise ArgumentError unless default_network.is_a? String
+      c = @client["#{@account}/config"]
+      headers = gen_headers(opts)
+      opts[:default_network] = default_network
+      attempt(opts[:attempts]) do
+        do_put(c, headers, opts)
+      end
+
+    end
+
+    ##
+    # datacenters
+    ##
+
+    # Provides a list of all datacenters this cloud is aware of.
+    def list_datacenters(opts= {})
+      c = @client["#{@account}/datacenters"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+    end
+
+    # Gets an individual datacenter by name. Returns an HTTP redirect to
+    # your client, where the datacenter url is in the Location header.
+    #
+    # ==== Attributes
+    #
+    # * +:name - String datacenter name
+    def get_datacenter(name, opts = {})
+      raise ArgumentError unless name.is_a? String
+      c = @client["#{@account}/datacenters/#{name}"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        raise InvalidArgument unless c.is_a? RestClient::Resource
+        result = c.get(headers)
+        raise InternalError unless result.is_a? RestClient::Response
+
+        if result.code == 302
+          return JSON.parse(result.body)
+        end
+
+        raise_error(result)
+      end
+
+    end
+
+    ##
+    # Services
+    ##
+
+    # Provides the URL endpoints for services for this datacenter. It is a
+    # mapping of service name to URL endpoint.
+    def list_services(opts= {})
+      c = @client["#{@account}/services"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+    end
+
+    ##
+    # Images
+    ##
+    # An image contains the software packages that will be available on
+    # newly-provisioned instance. In the case of hardware virtual machines,
+    # the image also includes the operating system.
+
+    # Provides a list of images available in this datacenter.
+    # Note: Currently, Docker images are not included in this endpoint's
+    # responses. You must use docker images against the docker service for this
+    # datacenter.
+    #
+    # ==== Options
+    #
+    # * +:name - String	The "friendly" name for this image
+    # * +:os - String	The underlying operating system for this image
+    # * +:version - String	The version for this image
+    # * +:public - Boolean	Filter public/private images
+    # * +:state - String	Filter on image state. By default only active images are shown. Use ?state=all to list all images
+    # * +:owner - String	Filter on owner UUID
+    # * +:type - String	Filter on image type. The types changed in v8.0.0
+    def list_images(opts= {})
+      url = "#{@account}/images"
+      if opts.size > 0
+          url = url + '?' + URI.encode_www_form(opts)
+      end
+      c = @client[url]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+    end
+
+    # Gets an individual image by id.
+    #
+    # ==== Attributes
+    #
+    # * +:image - String id of the image
+    def get_image(image, opts = {})
+      raise ArgumentError unless image.is_a? String
+      c = @client["#{@account}/images/#{image}"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+    # Delete an image. Caller must be the owner of the image to delete it.
+    #
+    # ==== Attributes
+    #
+    # *+:image - String id of the image
+    def delete_image(image, opts = {})
+      raise ArgumentError unless image.is_a? String
+      c = @client["#{@account}/images/#{policy}"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_delete(c, headers)
+      end
+
+    end
+
+    # Exports an image to the specified Manta path. Caller must be the owner of
+    # the image, and the correspondent Manta path prefix, in order to export it.
+    # Both the image manifest and the image file will be exported, and their
+    # filenames will default to the following format when the specified manta
+    # path is a directory
+    #
+    # ==== Attributes
+    #
+    # * +:image - String id of the image
+    # * +:manta_path - String Manta path prefix used when exporting the image
+    def export_image(image, manta_path, opts = {})
+      raise ArgumentError unless image.is_a? String
+      raise ArgumentError unless manta_path.is_a? String
+      c = @client["#{@account}/images/#{image}?action=export"]
+      headers = gen_headers(opts)
+      opts[:manta_path] = manta_path
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Create a new custom image from an instance. The typical process is:
+    #
+    # 1. Customize an instance the way you want it.
+    # 2. Call this method (create_image_from_machine) to create a new image.
+    # 3. Repeat from step 1 if more customizations are desired with different images.
+    # 4. Use the new image(s) for provisioning via create_machine.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String The prepared and stopped instance UUID from which the image is to be created
+    # * +:name - String The name of the custom image, e.g. "my-image". See the IMGAPI docs for details
+    # * +:version - String The version of the custom image, e.g. "1.0.0". See the IMGAPI docs for details
+    #
+    # ==== Options
+    #
+    # * +:description - String The image description
+    # * +:homepage - String The image homepage
+    # * +:eula - String The image eula
+    # * +:acl - String The image acl
+    # * +:tags - String The image tags
+    def create_image_from_machine(machine, name, version, opts = {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless name.is_a? String
+      raise ArgumentError unless version.is_a? String
+      c = @client["#{@account}/images"]
+      headers = gen_headers(opts)
+      opts[:machine] = machine
+      opts[:name] = name
+      opts[:version] = version
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Updates metadata about an image.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String The prepared and stopped instance UUID from which the image is to be created
+    #
+    # ==== Options
+    #
+    # * +:name - String The name of the custom image, e.g. "my-image". See the IMGAPI docs for details
+    # * +:version - String The version of the custom image, e.g. "1.0.0". See the IMGAPI docs for details
+    # * +:description - String The image description
+    # * +:homepage - String The image homepage
+    # * +:eula - String The image eula
+    # * +:acl - String The image acl
+    # * +:tags - String The image tags
+    def update_image(machine, opts = {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/images/#{image}?action=update"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    ##
+    # Packages
+    ##
+    # Packages are named collections of resources that are used to describe the
+    # dimensions of either a container or a hardware virtual machine. These
+    # resources include (but are not limited to) RAM size, CPUs, CPU caps,
+    # lightweight threads, disk space, swap size, and logical networks.
+
+    # Provides a list of packages available in this datacenter.
+    #
+    # ==== Options
+    #
+    # * +:name - String	The "friendly" name for this package
+    # * +:memory - Number	How much memory will by available (in MiB)
+    # * +:disk - Number	How much disk space will be available (in MiB)
+    # * +:swap - Number	How much swap space will be available (in MiB)
+    # * +:lwps - Number	Maximum number of light-weight processes (threads) allowed
+    # * +:vcpus - Number	Number of vCPUs for this package
+    # * +:version - String	The version of this package
+    # * +:group	- String	The group this package belongs to
+    def list_packages(opts= {})
+      url = "#{@account}/packages"
+      if opts.size > 0
+          url = url + '?' + URI.encode_www_form(opts)
+      end
+      c = @client[url]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+    end
+
+    # Gets an individual image by id.
+    #
+    # ==== Attributes
+    #
+    # * +:package - String id of the package
+    def get_package(package, opts = {})
+      raise ArgumentError unless package.is_a? String
+      c = @client["#{@account}/packages/#{package}"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
 
     ##
     # Instances
@@ -650,28 +928,17 @@ module RubyTriton
     # *+:docker	- Boolean	Whether to only list Docker instances, or only non-Docker instances, if present. Defaults to showing all instances.
     # *+:credentials -Boolean	Whether to include the generated credentials for instances, if present. Defaults to false
     def list_machines(opts= {})
-      c = @client["my/machines"]
+      url = "#{@account}/machines"
+      # TODO fix for head query
+      opts[:limit] = opts[:limit] ? MAX_LIMIT
+      raise ArgumentError unless 0 < opts[:limit] && opts[:limit] <= MAX_LIMIT
+      if opts.size > 0
+          url = url + '?' + URI.encode_www_form(opts)
+      end
+      c = @client[url]
       headers = gen_headers(opts)
-
-      limit = opts[:limit] || MAX_LIMIT
-      raise ArgumentError unless 0 < limit && limit <= MAX_LIMIT
-      # valid_parameters = {  'brand' => 'String',
-      #                       'name' => 'String',
-      #                       'image' => 'String',
-      #                       'state' => 'String',
-      #                       'memory' => 'Integer',
-      #                       'tombstone' => 'Boolean',
-      #                       'offset' => 'Integer',
-      #                       'tag.' => 'String',
-      #                       'docker' => 'Boolean',
-      #                       'credentials' => 'Boolean'
-      #                     }
-      #
-      # validate_parameters(query_parameters, valid_parameters, opts)
-
       attempt(opts[:attempts]) do
         if opts[:head]
-          opts.delete(:head)
           do_head(c, headers)
         else
           do_get(c, headers)
