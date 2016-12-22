@@ -1270,6 +1270,225 @@ module RubyTriton
 
     end
 
+    # Returns the complete set of metadata associated with this instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    #
+    # ==== Options
+    #
+    # * +:credentials - Boolean Whether or not to return instance credentials. Defaults to false
+    def list_machine_metadata(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      url = "#{@account}/machines/#{machine}/metadata"
+      if opts.size > 0 && opts['credentials'].is_a? Boolean
+        if opts['credentials']
+          url = url + '?' + "credentials=true"
+        end
+      end
+      c = @client[url]
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+
+    # Returns a single metadata entry associated with this instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:key - String	Name of metadata value to retrieve
+    def get_machine_metadata(machine, key,opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless key.is_a? String
+      c = @client["#{@account}/machines/#{machine}/metadata/#{key}"]
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+    # Deletes a single metadata key from this instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:key - String	Name of metadata value to delete
+    def delete_machine_metadata(machine, key,opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless key.is_a? String
+      c = @client["#{@account}/machines/#{machine}/metadata/#{key}"]
+      attempt(opts[:attempts]) do
+        do_delete(c, headers)
+      end
+
+    end
+
+    # Deletes all metadata keys from this instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def delete_all_machine_metadata(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}/metadata"]
+      attempt(opts[:attempts]) do
+        do_delete(c, headers)
+      end
+
+    end
+
+    # Set tags on the given instance. A pre-existing tag with the same name as
+    # one given will be overwritten.
+    # Note: This action is asynchronous. You can poll on ListMachineTags to wait
+    # for the update to be complete (the triton instance tag set -w,--wait
+    # option does this).
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:tags - Array tags to be added
+    def add_machine_tags(machine, tags, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless tags.is_a? Hash
+      c = @client["#{@account}/machines/#{machine}/tags"]
+      opts[:tags] = tags
+      attempt(opts[:attempts]) do
+        do_post(c, headers, opts)
+      end
+
+    end
+
+    # Fully replace all tags on an instance with the given tags.
+    # Note: This action is asynchronous. You can poll on ListMachineTags to wait
+    # for the update to be complete (the triton instance tag set -w,--wait
+    # option does this).
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:tags - Array tags to replace
+    def replace_machine_tags(machine, tags, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless tags.is_a? Hash
+      c = @client["#{@account}/machines/#{machine}/tags"]
+      opts[:tags] = tags
+      attempt(opts[:attempts]) do
+        do_put(c, headers, opts)
+      end
+
+    end
+
+    # Fully replace all tags on an instance with the given tags.
+    # Note: This action is asynchronous. You can poll on ListMachineTags to wait
+    # for the update to be complete (the triton instance tag set -w,--wait
+    # option does this).
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def list_machine_tags(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}/tags"]
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+    # Returns the value for a single tag on this instance.
+    #
+    # Typically one calls CloudAPI endpoints with Accept: application/json.
+    # This endpoint can be called that way, or alternatively with Accept:
+    # text/plain to get the non-JSON value in the response.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:tag - String tag to get
+    def get_machine_tags(machine, tag, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless tag.is_a? String
+      c = @client["#{@account}/machines/#{machine}/tags/#{tag}"]
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
+    # Deletes a single tag from this instance.
+    #
+    # Note: This action is asynchronous. You can poll on ListMachineTags to wait
+    # for the update to be complete (the triton instance tag delete -w,--wait
+    # option does this).
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    # * +:tag - String tag to get
+    def delete_machine_tag(machine, tag, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless tag.is_a? String
+      c = @client["#{@account}/machines/#{machine}/tags/#{tag}"]
+      attempt(opts[:attempts]) do
+        do_delete(c, headers)
+      end
+
+    end
+
+    # Deletes all tags from an instance.
+    #
+    # Note: This action is asynchronous. You can poll on ListMachineTags to wait
+    # for the update to be complete (the triton instance tag delete -w,--wait
+    # option does this).
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def delete_machine_tags(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}/tags"]
+      attempt(opts[:attempts]) do
+        do_delete(c, headers)
+      end
+
+    end
+
+    # Allows you to completely destroy an instance.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def delete_machine(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}"]
+      attempt(opts[:attempts]) do
+        do_delete(c, headers)
+      end
+
+    end
+
+    # Provides a list of an instance's accomplished actions. Results are sorted
+    # from newest to oldest action.
+    #
+    # Note that the complete audit trail is returned only if the instance history
+    # and job records have not been purged from Triton.
+    #
+    # ==== Attributes
+    #
+    # * +:machine - String id of the machine
+    def machine_audit(machine, opts= {})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}/audit"]
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
+      end
+
+    end
+
 
     # ---------------------------------------------------------------------------
     protected
