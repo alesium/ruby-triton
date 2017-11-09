@@ -942,7 +942,7 @@ module RubyTriton
     def list_machines(opts= {})
       url = "#{@account}/machines"
       # TODO fix for head query
-      opts[:limit] = opts[:limit] ? MAX_LIMIT
+      opts[:limit] = opts[:limit] ? opts[:limit] : MAX_LIMIT
       raise ArgumentError unless 0 < opts[:limit] and opts[:limit] <= MAX_LIMIT
       if opts.size > 0
           url = url + '?' + URI.encode_www_form(opts)
@@ -1018,10 +1018,29 @@ module RubyTriton
       raise ArgumentError unless package.is_a? String
       c = @client["#{@account}/machines"]
       headers = gen_headers(opts)
-      opts[:image] = machine
-      opts[:package] = name
+      opts[:image] = image
+      opts[:package] = package
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
+      end
+
+    end
+
+    #Gets the details for an individual instance.
+    #
+    #Deleted instances are returned only if the instance history has not been purged from Triton.
+    # ==== Attributes
+    # * +:machine - String id of the machine
+    #
+    # ==== Options
+    # * :attempts - Int number of attemps to try
+    
+    def get_machine(machine, opts={})
+      raise ArgumentError unless machine.is_a? String
+      c = @client["#{@account}/machines/#{machine}"]
+      headers = gen_headers(opts)
+      attempt(opts[:attempts]) do
+        do_get(c, headers)
       end
 
     end
@@ -1036,6 +1055,7 @@ module RubyTriton
     def stop_machine(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}?action=stop"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -1052,6 +1072,7 @@ module RubyTriton
     def start_machine(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}?action=start"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -1068,6 +1089,7 @@ module RubyTriton
     def reboot_machine(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}?action=reboot"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -1092,6 +1114,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless package.is_a? String
       c = @client["#{@account}/machines/#{machine}?action=resize"]
+      headers = gen_headers(opts)
       opts['package'] = package
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
@@ -1110,6 +1133,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless name.is_a? String
       c = @client["#{@account}/machines/#{machine}?action=rename"]
+      headers = gen_headers(opts)
       opts['name'] = name
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
@@ -1125,6 +1149,7 @@ module RubyTriton
     def enable_machine_firewall(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}?action=enable_firewall"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -1139,6 +1164,7 @@ module RubyTriton
     def disable_machine_firewall(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}?action=disable_firewall"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -1166,9 +1192,12 @@ module RubyTriton
     # ==== Options
     #
     # * +:name - String The name to assign to the new snapshot
-    def create_machine_snapshot(machine, opts= {})
+    def create_machine_snapshot(machine, name, opts= {})
       raise ArgumentError unless machine.is_a? String
+      raise ArgumentError unless name.is_a? String
       c = @client["#{@account}/machines/#{machine}/snapshots"]
+      headers = gen_headers(opts)
+      opts['name'] = name
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -1191,6 +1220,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless snapshot.is_a? String
       c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
       end
@@ -1206,6 +1236,7 @@ module RubyTriton
     def list_machine_snapshots(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}/snapshots"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_get(c, headers)
       end
@@ -1218,10 +1249,11 @@ module RubyTriton
     #
     # * +:machine - String id of the machine
     # * +:snapshot - String The name of the snapshot
-    def get_machine_snapshots(machine, snapshot, opts= {})
+    def get_machine_snapshot(machine, snapshot, opts= {})
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless snapshot.is_a? String
       c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_get(c, headers)
       end
@@ -1238,6 +1270,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless snapshot.is_a? String
       c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_delete(c, headers)
       end
@@ -1264,6 +1297,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless keys.is_a? String or keys.is_a? JSON
       c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
+      headers = gen_headers(opts)
       opts['keys'] = keys
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
@@ -1289,6 +1323,7 @@ module RubyTriton
         end
       end
       c = @client[url]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_get(c, headers)
       end
@@ -1306,6 +1341,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless key.is_a? String
       c = @client["#{@account}/machines/#{machine}/metadata/#{key}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_get(c, headers)
       end
@@ -1322,6 +1358,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless key.is_a? String
       c = @client["#{@account}/machines/#{machine}/metadata/#{key}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_delete(c, headers)
       end
@@ -1336,6 +1373,7 @@ module RubyTriton
     def delete_all_machine_metadata(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}/metadata"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_delete(c, headers)
       end
@@ -1356,6 +1394,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless tags.is_a? Hash
       c = @client["#{@account}/machines/#{machine}/tags"]
+      headers = gen_headers(opts)
       opts[:tags] = tags
       attempt(opts[:attempts]) do
         do_post(c, headers, opts)
@@ -1376,6 +1415,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless tags.is_a? Hash
       c = @client["#{@account}/machines/#{machine}/tags"]
+      headers = gen_headers(opts)
       opts[:tags] = tags
       attempt(opts[:attempts]) do
         do_put(c, headers, opts)
@@ -1394,6 +1434,7 @@ module RubyTriton
     def list_machine_tags(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}/tags"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_get(c, headers)
       end
@@ -1414,6 +1455,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless tag.is_a? String
       c = @client["#{@account}/machines/#{machine}/tags/#{tag}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_get(c, headers)
       end
@@ -1434,6 +1476,7 @@ module RubyTriton
       raise ArgumentError unless machine.is_a? String
       raise ArgumentError unless tag.is_a? String
       c = @client["#{@account}/machines/#{machine}/tags/#{tag}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_delete(c, headers)
       end
@@ -1452,6 +1495,7 @@ module RubyTriton
     def delete_machine_tags(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}/tags"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_delete(c, headers)
       end
@@ -1466,6 +1510,7 @@ module RubyTriton
     def delete_machine(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_delete(c, headers)
       end
@@ -1484,6 +1529,7 @@ module RubyTriton
     def machine_audit(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       c = @client["#{@account}/machines/#{machine}/audit"]
+      headers = gen_headers(opts)
       attempt(opts[:attempts]) do
         do_get(c, headers)
       end
@@ -1584,8 +1630,12 @@ module RubyTriton
       result = c.get(headers)
       raise unless result.is_a? RestClient::Response
 
-      if result.code == 200
-        return JSON.parse(result.body)
+      if result.code >= 200 or result.code <= 300
+	if result.body == ''
+		return true
+	else
+        	return JSON.parse(result.body)
+	end
       end
 
       raise_error(result)
@@ -1596,11 +1646,16 @@ module RubyTriton
     #
     def do_post(c, headers, payload)
       raise unless c.is_a? RestClient::Resource
-      result = c.post(payload.except!(:attempts), headers)
+      payload.delete(:attempts)
+      result = c.post(payload, headers)
       raise unless result.is_a? RestClient::Response
 
-      if result.code == 200
-        return JSON.parse(result.body)
+      if result.code >= 200 or result.code <= 300
+	if result.body == ''
+		return true
+	else
+        	return JSON.parse(result.body)
+	end
       end
 
       raise_error(result)
@@ -1611,7 +1666,8 @@ module RubyTriton
     #
     def do_put(c, headers, payload)
       raise unless c.is_a? RestClient::Resource
-      result = c.put(payload.except!(:attempts), headers)
+      payload.delete(:attempts)
+      result = c.put(payload, headers)
       raise unless result.is_a? RestClient::Response
 
       if result.code == 200
@@ -1662,5 +1718,10 @@ module RubyTriton
       end
     end
 
+    class UnknownError < StandardError
+	def initialize(msg="Something strange happened")
+    		super
+ 	end
+    end
   end
 end
