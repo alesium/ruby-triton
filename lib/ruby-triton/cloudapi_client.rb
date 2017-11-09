@@ -44,7 +44,8 @@ module RubyTriton
                           'InvalidArgument', 'InvalidCredentials', 'InvalidHeader',
                           'InvalidVersion', 'MissingParameter', 'NotAuthorized',
                           'RequestThrottled', 'RequestTooLarge', 'RequestMoved',
-                          'ResourceNotFound', 'UnknownError']
+                          'ResourceNotFound', 'UnknownError'
+			]
 
 
 
@@ -451,12 +452,12 @@ module RubyTriton
     #
     # * +:resource_url - String (Required) The resource path to assign a role tags to.
     # * +:role-tag - Array (Required) Array of tags to be assigned/modified
-    def create_role_tags(resource_url, role-tag, opts = {})
+    def create_role_tags(resource_url, role_tag, opts = {})
       raise ArgumentError unless resource_url.is_a? String
-      raise ArgumentError unless role-tag.is_a? Array
+      raise ArgumentError unless role_tag.is_a? Array
       c = @client[resource_url]
       headers = gen_headers(opts)
-      opts['role-tag'] = role-tag
+      opts['role-tag'] = role_tag
       attempt(opts[:attempts]) do
         do_put(c, headers, opts)
       end
@@ -557,7 +558,7 @@ module RubyTriton
     # Lists all public keys we have on record for the specified account user.
     # See list_keys.
     def list_user_keys(opts= {})
-      raise unless @subuser is not nil
+      raise unless @subuser.nil?
       c = @client["#{@account}/users/#{@subuser}/keys"]
       headers = gen_headers(opts)
       attempt(opts[:attempts]) do
@@ -571,7 +572,7 @@ module RubyTriton
     #
     # * +:key - String id or fingerprint of key
     def get_user_key(key, opts = {})
-      raise InvalidCredentials unless @subuser is not nil
+      raise InvalidCredentials unless @subuser.nil?
       raise ArgumentError unless key.is_a? String
       c = @client["#{@account}/users/#{@subuser}/keys/#{key}"]
       headers = gen_headers(opts)
@@ -591,7 +592,7 @@ module RubyTriton
     #
     # * +:name - String	Name for this key
     def create_user_key(key, opts = {})
-      raise InvalidCredentials unless @subuser is not nil
+      raise InvalidCredentials unless @subuser.nil?
       raise ArgumentError unless key.is_a? String
       c = @client["#{@account}/users/#{@subuser}/keys"]
       headers = gen_headers(opts)
@@ -608,7 +609,7 @@ module RubyTriton
     #
     # *+:key - String id or fingerprint of key
     def delete_user_key(key, opts = {})
-      raise InvalidCredentials unless @subuser is not nil
+      raise InvalidCredentials unless @subuser.nil?
       raise ArgumentError unless key.is_a? String
       c = @client["#{@account}/users/#{@subuser}/keys/#{key}"]
       headers = gen_headers(opts)
@@ -942,7 +943,7 @@ module RubyTriton
       url = "#{@account}/machines"
       # TODO fix for head query
       opts[:limit] = opts[:limit] ? MAX_LIMIT
-      raise ArgumentError unless 0 < opts[:limit] && opts[:limit] <= MAX_LIMIT
+      raise ArgumentError unless 0 < opts[:limit] and opts[:limit] <= MAX_LIMIT
       if opts.size > 0
           url = url + '?' + URI.encode_www_form(opts)
       end
@@ -1261,7 +1262,7 @@ module RubyTriton
     # * +:name - String The name to assign to the new snapshot
     def update_machine_metadata(machine, keys, opts= {})
       raise ArgumentError unless machine.is_a? String
-      raise ArgumentError unless keys.is_a? String || keys.is_a? JSON
+      raise ArgumentError unless keys.is_a? String or keys.is_a? JSON
       c = @client["#{@account}/machines/#{machine}/snapshots/#{snapshot}"]
       opts['keys'] = keys
       attempt(opts[:attempts]) do
@@ -1282,7 +1283,7 @@ module RubyTriton
     def list_machine_metadata(machine, opts= {})
       raise ArgumentError unless machine.is_a? String
       url = "#{@account}/machines/#{machine}/metadata"
-      if opts.size > 0 && opts['credentials'].is_a? Boolean
+      if opts.size > 0 and opts['credentials'].is_a? Boolean
         if opts['credentials']
           url = url + '?' + "credentials=true"
         end
