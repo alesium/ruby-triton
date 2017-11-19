@@ -26,20 +26,22 @@ class TestTriton < Minitest::Test
 
     end
 
-    @@current_machines = @@client.list_machines()
   end
-
-  def test_list_machines()
-	assert_equal(@@current_machines.count, @@client.list_machines().count)
+ 
+  def test_accounts()
+	current_account = @@client.get_account()
+	assert_equal(account,current_account["login"])
+	new_email = 'test@example.com'
+	assert_equal(new_email, @@client.update_account({ :email => new_email}))
+	@@client.update_account({ :email => current_account[:email]})
   end
 
   def test_machines()
 	image='1f32508c-e6e9-11e6-bc05-8fea9e979940'
 	package='6bcc505d-745f-eb20-9226-98f3d2067e71'
 	machine = @@client.create_machine(image, package)
-	current_count = @@current_machines.count
 	assert_equal('provisioning', machine['state'])
-        assert_equal(current_count + 1, @@client.list_machines().count)
+        assert_equal(1, @@client.list_machines().count)
 	assert_equal(machine["id"], @@client.get_machine(machine["id"])["id"])
 	while @@client.get_machine(machine["id"])["state"] != "running"
 		sleep 10
